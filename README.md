@@ -1,1 +1,1 @@
-# mySQL
+# mySQL course at SoftUni
