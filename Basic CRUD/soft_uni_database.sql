@@ -1744,3 +1744,19 @@ SELECT CONCAT_WS (' ', `first_name`, `middle_name`, `last_name`) AS `full_name`,
 -- 17. Distinct Job Titles
 SELECT DISTINCT `job_title` FROM `employees`
 ORDER BY `job_title`;
+
+-- 18. Find First 10 Started Projects
+SELECT * FROM `projects`
+ORDER BY `start_date`, `name`, `project_id`
+LIMIT 10;
+
+-- 19. Last 7 Hired Employees
+SELECT `first_name`, `last_name`, `hire_date` FROM `employees`
+ORDER BY `hire_date` DESC
+LIMIT 7;
+
+-- 20. Increase Salaries
+UPDATE `employees`
+SET `salary` = `salary` * 1.12
+WHERE `department_id` IN (1, 2, 4, 11);
+SELECT `salary` FROM `employees`;
