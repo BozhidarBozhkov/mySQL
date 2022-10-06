@@ -93,3 +93,44 @@ END$$
 CALL usp_get_holders_with_balance_higher_than(7000)$$
 
 -- 10. Future Value Function
+CREATE FUNCTION ufn_calculate_future_value(initial_sum DECIMAL(19,4), yearly_interest_rate DOUBLE, years INT)
+RETURNS DECIMAL(19,4)
+DETERMINISTIC
+BEGIN
+	DECLARE future_value DECIMAL(19,4);
+    SET future_value := initial_sum * POW((1 + yearly_interest_rate), years);
+    RETURN future_value;
+END$$
+
+-- 11. Calculating Interest
+CREATE PROCEDURE usp_calculate_future_value_for_account(account_id INT, interest_rate DECIMAL(19,4))
+BEGIN
+	SELECT a.`id` AS 'account_id', ah.`first_name`, ah.`last_name`, a.`balance` AS 'current_balance', 
+    ufn_calculate_future_value(a.`balance`, interest_rate, 5) AS 'balance_in_5_years' 
+    FROM `accounts` AS a
+    JOIN `account_holders` AS ah ON ah.`id` = a.`account_holder_id`
+    WHERE a.`id` = account_id;
+END$$
+
+-- 12. Deposit Money
+CREATE PROCEDURE usp_deposit_money(account_id INT, money_amount DECIMAL(19,4))
+BEGIN
+	START TRANSACTION;
+    IF(money_amount <= 0) THEN ROLLBACK;
+    ELSE UPDATE `accounts` SET `balance` = `balance` + money_amount
+    WHERE `id` = account_id;
+    COMMIT;
+    END IF;
+END$$
+
+
+-- 13. Withdraw Money
+CREATE PROCEDURE usp_withdraw_money(account_id INT, money_amount DECIMAL(19,4))
+BEGIN
+	START TRANSACTION;
+    IF(money_amount <= 0 OR (SELECT `balance` FROM `accounts` WHERE `id` = account_id) < money_amount) THEN ROLLBACK;
+    ELSE UPDATE `accounts` SET `balance` = `balance` - money_amount
+    WHERE `id` = account_id;
+    COMMIT;
+    END IF;
+END$$ 
