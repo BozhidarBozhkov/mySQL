@@ -134,3 +134,62 @@ BEGIN
     COMMIT;
     END IF;
 END$$ 
+
+-- 14. Money Transfer
+DELIMITER $$
+CREATE PROCEDURE usp_transfer_money(from_account_id INT, to_account_id INT, amount DECIMAL(19, 4))
+BEGIN
+	START TRANSACTION;
+    IF amount < 0 OR (SELECT `balance` FROM `accounts` WHERE `id` = from_account_id) < amount
+    OR (SELECT COUNT(`id`) FROM `accounts` WHERE `id` = from_account_id) <> 1 
+    OR (SELECT COUNT(`id`) FROM `accounts` WHERE `id` = to_account_id) <> 1
+    OR from_account_id = to_account_id THEN ROLLBACK;
+    ELSE UPDATE `accounts` SET `balance` = `balance` - amount
+    WHERE `id` = from_account_id;
+    UPDATE `accounts` SET `balance` = `balance` + amount
+    WHERE `id` = to_account_id;
+      COMMIT;
+      END IF;
+END$$
+DELIMITER ;
+
+-- 15. Log Accounts Trigger
+
+CREATE TABLE `logs` (
+log_id INT PRIMARY KEY AUTO_INCREMENT,
+account_id INT NOT NULL,
+old_sum DECIMAL(19,4) NOT NULL,
+new_sum DECIMAL(19,4) NOT NULL
+);
+
+DELIMITER $$
+CREATE TRIGGER tr_account_balance_change
+AFTER UPDATE
+ON `accounts`
+FOR EACH ROW
+BEGIN
+	INSERT INTO `logs` (account_id, old_sum, new_sum)
+    VALUES(OLD.id, OLD.balance, NEW.balance);
+END$$
+
+-- 16. Emails Trigger
+CREATE TABLE `notification_emails` (
+`id` INT PRIMARY KEY AUTO_INCREMENT,
+`recipient` INT NOT NULL,
+`subject` VARCHAR(100),
+`body` TEXT
+);
+
+DELIMITER $$
+CREATE TRIGGER tr_new_record_inserted
+AFTER INSERT ON `logs`
+FOR EACH ROW
+BEGIN
+    INSERT INTO `notification_emails` (`recipient`, `subject`, `body`)
+    VALUES (
+        NEW.account_id, 
+        CONCAT('Balance change for account: ', NEW.account_id), 
+        CONCAT('On ', DATE_FORMAT(NOW(), '%b %d %Y at %r'), ' your balance was changed from ', ROUND(NEW.old_sum, 2), ' to ', ROUND(NEW.new_sum, 2), '.'));
+END$$
+
+DELIMITER ;

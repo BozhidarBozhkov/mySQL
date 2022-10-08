@@ -75,3 +75,5 @@ BEGIN
 END$$
 
 SELECT ufn_is_word_comprised('oistmiahf', 'Sofia')$$
+
+DELIMITER ;
